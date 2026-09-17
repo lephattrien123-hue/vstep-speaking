@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSTEP Speaking Task 1</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <div>
+            <h1>VSTEP Speaking Task 1</h1>
+            <p>Question Bank</p>
+        </div>
+        <button class="manage-btn" onclick="openManageModal()">Manage</button>
+    </header>
+
+    <div class="search-box">
+        <input id="searchInput" type="text" placeholder="Search questions...">
+    </div>
+
+    <section class="filter-section">
+        <div class="section-title">
+            <strong>Form</strong>
+            <button class="small-add" onclick="openFormModal()">+ Add Form</button>
+        </div>
+
+        <div class="filter-buttons" id="formFilters">
+            <button class="active" data-form="ALL">All</button>
+            {% for form in forms %}
+                <button data-form="{{ form.id }}">{{ form.name }}</button>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="filter-section">
+        <div class="section-title">
+            <strong>Topic</strong>
+            <button class="small-add" onclick="openTopicModal()">+ Add Topic</button>
+        </div>
+
+        <div class="filter-buttons" id="topicFilters">
+            <button class="active" data-topic="ALL">All</button>
+            {% for topic in topics %}
+                <button data-topic="{{ topic.id }}">{{ topic.name }}</button>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="result-count">
+        <span id="resultCount">{{ questions|length }}</span> questions
+    </div>
+
+    <main id="questionList">
+        {% for q in questions %}
+        <div class="question-card"
+             data-form="{{ q.form_id }}"
+             data-topic="{{ q.topic_id }}">
+
+            <div class="tags">
+                <span class="form-tag">{{ q.form_name }}</span>
+                <span class="topic-tag">{{ q.topic_name }}</span>
+            </div>
+
+            <p class="question-text">{{ q.question }}</p>
+
+            <div class="actions">
+                <button class="edit-btn"
+                        onclick='openEditModal(
+                            {{ q.id }},
+                            {{ q.question|tojson }},
+                            {{ q.form_id }},
+                            {{ q.topic_id }}
+                        )'>
+                    Edit
+                </button>
+
+                <form method="POST"
+                      action="{{ url_for('delete', question_id=q.id) }}"
+                      onsubmit="return confirm('Delete this question?');">
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not questions %}
+        <div class="empty">No questions yet.</div>
+        {% endif %}
+    </main>
+
+    <button class="add-button" onclick="openAddModal()">+ Add Questions</button>
+</div>
+
+
+<!-- ADD QUESTIONS -->
+<div id="addModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Questions</h2>
+            <button onclick="closeModal('addModal')">×</button>
+        </div>
+
+        <p>Paste one question per line. Form and Topic can be detected automatically.</p>
+
+        <form method="POST" action="{{ url_for('add') }}">
+            <textarea name="questions" required
+                placeholder="What do you usually do in your free time?
+Where do you live?
+Why do you like English?
+How often do you travel?"></textarea>
+
+            <div class="select-row">
+                <label>
+                    Form
+                    <select name="form_id">
+                        <option value="">Auto detect</option>
+                        {% for form in forms %}
+                        <option value="{{ form.id }}">{{ form.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>
+                    Topic
+                    <select name="topic_id">
+                        <option value="">Auto detect</option>
+                        {% for topic in topics %}
+                        <option value="{{ topic.id }}">{{ topic.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal('addModal')">Cancel</button>
+                <button type="submit" class="primary">Add Questions</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- EDIT -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Question</h2>
+            <button onclick="closeModal('editModal')">×</button>
+        </div>
+
+        <form id="editForm" method="POST">
+            <textarea id="editQuestionInput" name="question" required></textarea>
+
+            <div class="select-row">
+                <label>
+                    Form
+                    <select id="editFormSelect" name="form_id">
+                        {% for form in forms %}
+                        <option value="{{ form.id }}">{{ form.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>
+                    Topic
+                    <select id="editTopicSelect" name="topic_id">
+                        {% for topic in topics %}
+                        <option value="{{ topic.id }}">{{ topic.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal('editModal')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ADD FORM -->
+<div id="formModal" class="modal hidden">
+    <div class="modal-content small-modal">
+        <div class="modal-header">
+            <h2>Add Form</h2>
+            <button onclick="closeModal('formModal')">×</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('create_form') }}">
+            <input class="name-input" name="name" required
+                   placeholder="Example: Opinion">
+
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal('formModal')">Cancel</button>
+                <button type="submit" class="primary">Add Form</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ADD TOPIC -->
+<div id="topicModal" class="modal hidden">
+    <div class="modal-content small-modal">
+        <div class="modal-header">
+            <h2>Add Topic</h2>
+            <button onclick="closeModal('topicModal')">×</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('create_topic') }}">
+            <input class="name-input" name="name" required
+                   placeholder="Example: Environment">
+
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal('topicModal')">Cancel</button>
+                <button type="submit" class="primary">Add Topic</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- MANAGE -->
+<div id="manageModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Manage Forms & Topics</h2>
+            <button onclick="closeModal('manageModal')">×</button>
+        </div>
+
+        <p class="manage-note">
+            You can delete a Form/Topic only when no question is using it.
+        </p>
+
+        <div class="manage-grid">
+            <div>
+                <h3>Forms</h3>
+                {% for form in forms %}
+                <div class="manage-item">
+                    <span>{{ form.name }}</span>
+                    {% if form.name.lower() != 'other' %}
+                    <form method="POST"
+                          action="{{ url_for('remove_form', form_id=form.id) }}"
+                          onsubmit="return confirm('Delete this Form?');">
+                        <button class="mini-delete">×</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div>
+                <h3>Topics</h3>
+                {% for topic in topics %}
+                <div class="manage-item">
+                    <span>{{ topic.name }}</span>
+                    {% if topic.name.lower() != 'other' %}
+                    <form method="POST"
+                          action="{{ url_for('remove_topic', topic_id=topic.id) }}"
+                          onsubmit="return confirm('Delete this Topic?');">
+                        <button class="mini-delete">×</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
