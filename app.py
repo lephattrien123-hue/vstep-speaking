@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, send_file
 from database import (
     init_database, get_all_questions, get_forms, get_topics,
     add_question, update_question, delete_question,
@@ -8,6 +8,13 @@ from database import (
 from classifier import classify_question
 
 app = Flask(__name__)
+@app.route("/download-db")
+def download_db():
+    return send_file(
+        "questions.db",
+        as_attachment=True,
+        download_name="questions.db"
+    )
 init_database()
 
 @app.route("/")
